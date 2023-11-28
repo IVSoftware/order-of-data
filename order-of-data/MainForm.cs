@@ -26,6 +26,20 @@ namespace order_of_data
                 }
                 Process.Start("explorer.exe", Path.GetDirectoryName(SQLitePath));
             }
+            buttonRequery.Click += async (sender, e) =>
+            {
+                Recordset.Clear();
+                UseWaitCursor = true;
+                await Task.Delay(500);
+                UseWaitCursor = false;
+                using (var cnx = new SQLiteConnection(SQLitePath))
+                {
+                    foreach (var item in cnx.Query<Record>("SELECT * FROM records ORDER BY Priority"))
+                    {
+                        Recordset.Add(item);
+                    }
+                }
+            };
         }
         string SQLitePath { get; } = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -39,12 +53,15 @@ namespace order_of_data
             dataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             using (var cnx = new SQLiteConnection(SQLitePath))
             {
-                DT = cnx.Query<Record>("SELECT * FROM records").ToDataTable();
+                foreach (var item in cnx.Query<Record>("SELECT * FROM records ORDER BY Priority"))
+                {
+                    Recordset.Add(item);
+                }
             }
-            dataGridView.DataSource = DT;
+            dataGridView.DataSource = Recordset;
+            dataGridView.Columns[nameof(Record.Created)].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dataGridView.Columns[nameof(Record.Created)].DefaultCellStyle.Format = @"hh\:mm\:ffffff";
             dataGridView.Columns[nameof(Record.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-            dataGridView.Columns[nameof(Record.Guid)].Visible = false;
-            dataGridView.Columns[nameof(Record.Priority)].Visible = false;
             BeginInvoke(() =>
             {
                 dataGridView.ClearSelection();
@@ -80,12 +97,9 @@ namespace order_of_data
                         int tgtRow = dropRow + (dragRow > dropRow ? 1 : 0);
                         if (tgtRow != dragRow)
                         {
-                            DataRow dtRow = DT.Rows[dragRow];
-                            DataRow newRow = DT.NewRow();
-                            newRow.ItemArray = DT.Rows[dragRow].ItemArray;
-
-                            DT.Rows.Remove(dtRow);
-                            DT.Rows.InsertAt(newRow, tgtRow);
+                            var record = Recordset[dragRow];
+                            Recordset.Remove(record);
+                            Recordset.Insert(tgtRow, record);
                             dataGridView.Refresh();
                             dataGridView.Rows[tgtRow].Selected = true;
                         }
@@ -95,13 +109,39 @@ namespace order_of_data
                 {
                     dragLabel.Dispose();
                     dragLabel = null;
+                    var priorities = Recordset.Select(_ => _.Priority).OrderBy(_=>_).ToArray();
+                    for(int index = 0; index < priorities.Length; index++)
+                    {
+                        Recordset[index].Priority = priorities[index];
+                    }
+                    using (var cnx = new SQLiteConnection(SQLitePath))
+                    {
+                        cnx.UpdateAll(Recordset);
+                    }
                 }
                 dataGridView.CurrentCell = hit.ColumnIndex == -1 || hit.RowIndex == -1 ?
                     null :
                     dataGridView[hit.ColumnIndex, hit.RowIndex];
-                foreach (var item in DT.Rows)
+            };
+            dataGridView.CellClick += (sender, e) =>
+            {
+                if(e.RowIndex == -1)
                 {
-
+                    Record[] sorted;
+                    if (dataGridView.Columns[nameof(Record.Created)].Index == e.ColumnIndex)
+                    {
+                        sorted = Recordset.OrderBy(_ => _.Created).ToArray();
+                    }
+                    else if (dataGridView.Columns[nameof(Record.Name)].Index == e.ColumnIndex)
+                    {
+                        sorted = Recordset.OrderBy(_ => _.Name).ToArray();
+                    }
+                    else return;
+                    Recordset.Clear();
+                    foreach (var item in sorted)
+                    {
+                        Recordset.Add(item);
+                    }
                 }
             };
         }
@@ -109,18 +149,18 @@ namespace order_of_data
         Record[] _selectedRecords = new Record[0];
         int dragRow = -1;
         Label dragLabel = null;
-        DataTable DT { get; set; }
     }
 }
 
-[Table("records")]
+[Table("records"), DebuggerDisplay("{Name}")]
 class Record
 {
     [PrimaryKey, Browsable(false)]
     public string Guid { get; set; } = System.Guid.NewGuid().ToString();
+    public DateTime Created { get; set; } = DateTime.Now;
 
     [Browsable(false)]
-    public long Priority { get; set; } = DateTime.UtcNow.Ticks;
+    public DateTime Priority { get; set; } = DateTime.Now;
 
     [ReadOnly(true)]
     public string Name { get; set; } = string.Empty;

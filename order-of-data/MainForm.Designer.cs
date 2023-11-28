@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             dataGridView = new DataGridView();
+            buttonRequery = new Button();
             ((System.ComponentModel.ISupportInitialize)dataGridView).BeginInit();
             SuspendLayout();
             // 
@@ -38,22 +39,32 @@
             dataGridView.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dataGridView.Dock = DockStyle.Fill;
             dataGridView.Location = new Point(12, 12);
-            dataGridView.Margin = new Padding(4, 4, 4, 4);
+            dataGridView.Margin = new Padding(4);
             dataGridView.Name = "dataGridView";
             dataGridView.RowHeadersWidth = 62;
-            dataGridView.Size = new Size(550, 269);
+            dataGridView.Size = new Size(550, 209);
             dataGridView.TabIndex = 0;
+            // 
+            // buttonRequery
+            // 
+            buttonRequery.Location = new Point(447, 228);
+            buttonRequery.Name = "buttonRequery";
+            buttonRequery.Size = new Size(112, 50);
+            buttonRequery.TabIndex = 1;
+            buttonRequery.Text = "Requery";
+            buttonRequery.UseVisualStyleBackColor = true;
             // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(12F, 30F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(574, 293);
+            Controls.Add(buttonRequery);
             Controls.Add(dataGridView);
             Font = new Font("Segoe UI", 11F);
-            Margin = new Padding(4, 4, 4, 4);
+            Margin = new Padding(4);
             Name = "MainForm";
-            Padding = new Padding(12, 12, 12, 12);
+            Padding = new Padding(12, 12, 12, 72);
             Text = "MainForm";
             ((System.ComponentModel.ISupportInitialize)dataGridView).EndInit();
             ResumeLayout(false);
@@ -62,5 +73,6 @@
         #endregion
 
         private DataGridView dataGridView;
+        private Button buttonRequery;
     }
 }
